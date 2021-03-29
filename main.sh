@@ -1,4 +1,3 @@
-
 for file in /images/*
 do
     # 1)find text
