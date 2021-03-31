@@ -47,4 +47,14 @@ with open(os.path.join(subdirectory, args["image"] + ".txt"), "w") as file:
             # strip out non-ASCII text so we can draw the text on the image
             # using OpenCV, then draw a bounding box around the text along
             # with the text itself
-            file.write(",".join(map(str, x, y, (x + w), (y + h))))
+            file.write(",".join(map(str, [x, y, (x + w), (y + h)])))
+            # strip out non-ASCII text so we can draw the text on the image
+            # using OpenCV, then draw a bounding box around the text along
+            # with the text itself
+            text = "".join([c if ord(c) < 128 else "" for c in text]).strip()
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+# show the output image
+cv2.imshow("Image", image)
+cv2.waitKey(0)
+file.close()
