@@ -1,6 +1,7 @@
 #needs Tesseract4 and pytesseract installed
 
 # import the necessary packages
+from datetime import datetime
 from pytesseract import Output
 import pytesseract
 import argparse
@@ -17,6 +18,7 @@ args = vars(ap.parse_args())
 
 # load the input image, convert it from BGR to RGB channel ordering,
 # and use Tesseract to localize each area of text in the input image
+startTime = datetime.now()
 image = cv2.imread(args["image"])
 rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 results = pytesseract.image_to_data(rgb, output_type=Output.DICT)
@@ -26,13 +28,14 @@ try:
     os.mkdir(subdirectory)
 except Exception:
     pass
-with open(os.path.join(subdirectory, args["image"] + ".txt"), "w") as file:
+
+with open(os.path.join(subdirectory, os.path.basename(args["image"]) + ".txt"), "w") as file:
     # loop over each of the individual text localizations
     for i in range(0, len(results["text"])):
         # extract the bounding box coordinates of the text region from
         # the current result
         x = results["left"][i]
-        y = results["top"][i]
+        y = results["top"][i]       
         w = results["width"][i]
         h = results["height"][i]
         # extract the OCR text itself along with the confidence of the
@@ -50,13 +53,21 @@ with open(os.path.join(subdirectory, args["image"] + ".txt"), "w") as file:
             # using OpenCV, then draw a bounding box around the text along
             # with the text itself
             file.write(",".join(map(str, [x, y, (x + w), (y + h)])))
+            file.write(" " + text)
+            file.write(" Confidence:" + str(conf))
+            endTime = datetime.now() - startTime
+            file.write(" time:" + str(endTime))
+            file.write("\n")
             # strip out non-ASCII text so we can draw the text on the image
             # using OpenCV, then draw a bounding box around the text along
             # with the text itself
             text = "".join([c if ord(c) < 128 else "" for c in text]).strip()
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(image, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+
 # show the output image
+file.close()
 cv2.imshow("Image", image)
 cv2.waitKey(0)
-file.close()
+cv2.imwrite(subdirectory + "/" + os.path.basename(args["image"]) + ".jpg", image)
+

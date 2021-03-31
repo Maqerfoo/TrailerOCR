@@ -1,0 +1,6 @@
+123,17,211,59 Gt. Confidence:96 time:0:00:01.292610
+230,23,510,77 Yarmouth Confidence:95 time:0:00:01.292953
+123,70,369,121 Ipswich Confidence:95 time:0:00:01.293268
+116,217,403,272 Harwich Confidence:95 time:0:00:01.293605
+107,388,395,445 Clacton Confidence:95 time:0:00:01.293947
+430,392,598,445 A133 Confidence:92 time:0:00:01.294320
