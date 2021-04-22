@@ -1,136 +1,79 @@
+import keras
+from keras.applications.resnet50 import ResNet50
+from keras.models import Model
+from keras.layers import Conv2D, concatenate, BatchNormalization, Lambda, Input, multiply, add, ZeroPadding2D, Activation, Layer, MaxPooling2D, Dropout
+from keras import regularizers
+import keras.backend as K
 import tensorflow as tf
 import numpy as np
 
-from tensorflow.contrib import slim
+RESIZE_FACTOR = 2
 
-tf.app.flags.DEFINE_integer('text_scale', 512, '')
+def resize_bilinear(x):
+    return tf.image.resize_bilinear(x, size=[K.shape(x)[1]*RESIZE_FACTOR, K.shape(x)[2]*RESIZE_FACTOR])
 
-from nets import resnet_v1
+def resize_output_shape(input_shape):
+    shape = list(input_shape)
+    assert len(shape) == 4
+    shape[1] *= RESIZE_FACTOR
+    shape[2] *= RESIZE_FACTOR
+    return tuple(shape)
 
-FLAGS = tf.app.flags.FLAGS
+class EAST_model:
 
+    def __init__(self, input_size=512):
+        input_image = Input(shape=(None, None, 3), name='input_image')
+        overly_small_text_region_training_mask = Input(shape=(None, None, 1), name='overly_small_text_region_training_mask')
+        text_region_boundary_training_mask = Input(shape=(None, None, 1), name='text_region_boundary_training_mask')
+        target_score_map = Input(shape=(None, None, 1), name='target_score_map')
+        resnet = ResNet50(input_tensor=input_image, weights='imagenet', include_top=False, pooling=None)
+        x = resnet.get_layer('activation_49').output
 
-def unpool(inputs):
-    return tf.image.resize_bilinear(inputs, size=[tf.shape(inputs)[1]*2,  tf.shape(inputs)[2]*2])
+        x = Lambda(resize_bilinear, name='resize_1')(x)
+        x = concatenate([x, resnet.get_layer('activation_40').output], axis=3)
+        x = Conv2D(128, (1, 1), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
+        x = Conv2D(128, (3, 3), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
 
+        x = Lambda(resize_bilinear, name='resize_2')(x)
+        x = concatenate([x, resnet.get_layer('activation_22').output], axis=3)
+        x = Conv2D(64, (1, 1), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
+        x = Conv2D(64, (3, 3), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
 
-def mean_image_subtraction(images, means=[123.68, 116.78, 103.94]):
-    '''
-    image normalization
-    :param images:
-    :param means:
-    :return:
-    '''
-    num_channels = images.get_shape().as_list()[-1]
-    if len(means) != num_channels:
-      raise ValueError('len(means) must match the number of channels')
-    channels = tf.split(axis=3, num_or_size_splits=num_channels, value=images)
-    for i in range(num_channels):
-        channels[i] -= means[i]
-    return tf.concat(axis=3, values=channels)
+        x = Lambda(resize_bilinear, name='resize_3')(x)
+        x = concatenate([x, ZeroPadding2D(((1, 0),(1, 0)))(resnet.get_layer('activation_10').output)], axis=3)
+        x = Conv2D(32, (1, 1), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
+        x = Conv2D(32, (3, 3), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
 
+        x = Conv2D(32, (3, 3), padding='same', kernel_regularizer=regularizers.l2(1e-5))(x)
+        x = BatchNormalization(momentum=0.997, epsilon=1e-5, scale=True)(x)
+        x = Activation('relu')(x)
 
-def model(images, weight_decay=1e-5, is_training=True):
-    '''
-    define the model, we use slim's implemention of resnet
-    '''
-    images = mean_image_subtraction(images)
+        pred_score_map = Conv2D(1, (1, 1), activation=tf.nn.sigmoid, name='pred_score_map')(x)
+        rbox_geo_map = Conv2D(4, (1, 1), activation=tf.nn.sigmoid, name='rbox_geo_map')(x) 
+        rbox_geo_map = Lambda(lambda x: x * input_size)(rbox_geo_map)
+        angle_map = Conv2D(1, (1, 1), activation=tf.nn.sigmoid, name='rbox_angle_map')(x)
+        angle_map = Lambda(lambda x: (x - 0.5) * np.pi / 2)(angle_map)
+        pred_geo_map = concatenate([rbox_geo_map, angle_map], axis=3, name='pred_geo_map')
 
-    with slim.arg_scope(resnet_v1.resnet_arg_scope(weight_decay=weight_decay)):
-        logits, end_points = resnet_v1.resnet_v1_50(images, is_training=is_training, scope='resnet_v1_50')
+        model = Model(inputs=[input_image, overly_small_text_region_training_mask, text_region_boundary_training_mask, target_score_map], outputs=[pred_score_map, pred_geo_map])
 
-    with tf.variable_scope('feature_fusion', values=[end_points.values]):
-        batch_norm_params = {
-        'decay': 0.997,
-        'epsilon': 1e-5,
-        'scale': True,
-        'is_training': is_training
-        }
-        with slim.arg_scope([slim.conv2d],
-                            activation_fn=tf.nn.relu,
-                            normalizer_fn=slim.batch_norm,
-                            normalizer_params=batch_norm_params,
-                            weights_regularizer=slim.l2_regularizer(weight_decay)):
-            f = [end_points['pool5'], end_points['pool4'],
-                 end_points['pool3'], end_points['pool2']]
-            for i in range(4):
-                print('Shape of f_{} {}'.format(i, f[i].shape))
-            g = [None, None, None, None]
-            h = [None, None, None, None]
-            num_outputs = [None, 128, 64, 32]
-            for i in range(4):
-                if i == 0:
-                    h[i] = f[i]
-                else:
-                    c1_1 = slim.conv2d(tf.concat([g[i-1], f[i]], axis=-1), num_outputs[i], 1)
-                    h[i] = slim.conv2d(c1_1, num_outputs[i], 3)
-                if i <= 2:
-                    g[i] = unpool(h[i])
-                else:
-                    g[i] = slim.conv2d(h[i], num_outputs[i], 3)
-                print('Shape of h_{} {}, g_{} {}'.format(i, h[i].shape, i, g[i].shape))
+        self.model = model
+        self.input_image = input_image
+        self.overly_small_text_region_training_mask = overly_small_text_region_training_mask
+        self.text_region_boundary_training_mask = text_region_boundary_training_mask
+        self.target_score_map = target_score_map
+        self.pred_score_map = pred_score_map
+        self.pred_geo_map = pred_geo_map
 
-            # here we use a slightly different way for regression part,
-            # we first use a sigmoid to limit the regression range, and also
-            # this is do with the angle map
-            F_score = slim.conv2d(g[3], 1, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None)
-            # 4 channel of axis aligned bbox and 1 channel rotation angle
-            geo_map = slim.conv2d(g[3], 4, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None) * FLAGS.text_scale
-            angle_map = (slim.conv2d(g[3], 1, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None) - 0.5) * np.pi/2 # angle is between [-45, 45]
-            F_geometry = tf.concat([geo_map, angle_map], axis=-1)
-
-    return F_score, F_geometry
-
-
-def dice_coefficient(y_true_cls, y_pred_cls,
-                     training_mask):
-    '''
-    dice loss
-    :param y_true_cls:
-    :param y_pred_cls:
-    :param training_mask:
-    :return:
-    '''
-    eps = 1e-5
-    intersection = tf.reduce_sum(y_true_cls * y_pred_cls * training_mask)
-    union = tf.reduce_sum(y_true_cls * training_mask) + tf.reduce_sum(y_pred_cls * training_mask) + eps
-    loss = 1. - (2 * intersection / union)
-    tf.summary.scalar('classification_dice_loss', loss)
-    return loss
-
-
-
-def loss(y_true_cls, y_pred_cls,
-         y_true_geo, y_pred_geo,
-         training_mask):
-    '''
-    define the loss used for training, contraning two part,
-    the first part we use dice loss instead of weighted logloss,
-    the second part is the iou loss defined in the paper
-    :param y_true_cls: ground truth of text
-    :param y_pred_cls: prediction os text
-    :param y_true_geo: ground truth of geometry
-    :param y_pred_geo: prediction of geometry
-    :param training_mask: mask used in training, to ignore some text annotated by ###
-    :return:
-    '''
-    classification_loss = dice_coefficient(y_true_cls, y_pred_cls, training_mask)
-    # scale classification loss to match the iou loss part
-    classification_loss *= 0.01
-
-    # d1 -> top, d2->right, d3->bottom, d4->left
-    d1_gt, d2_gt, d3_gt, d4_gt, theta_gt = tf.split(value=y_true_geo, num_or_size_splits=5, axis=3)
-    d1_pred, d2_pred, d3_pred, d4_pred, theta_pred = tf.split(value=y_pred_geo, num_or_size_splits=5, axis=3)
-    area_gt = (d1_gt + d3_gt) * (d2_gt + d4_gt)
-    area_pred = (d1_pred + d3_pred) * (d2_pred + d4_pred)
-    w_union = tf.minimum(d2_gt, d2_pred) + tf.minimum(d4_gt, d4_pred)
-    h_union = tf.minimum(d1_gt, d1_pred) + tf.minimum(d3_gt, d3_pred)
-    area_intersect = w_union * h_union
-    area_union = area_gt + area_pred - area_intersect
-    L_AABB = -tf.log((area_intersect + 1.0)/(area_union + 1.0))
-    L_theta = 1 - tf.cos(theta_pred - theta_gt)
-    tf.summary.scalar('geometry_AABB', tf.reduce_mean(L_AABB * y_true_cls * training_mask))
-    tf.summary.scalar('geometry_theta', tf.reduce_mean(L_theta * y_true_cls * training_mask))
-    L_g = L_AABB + 20 * L_theta
-
-    return tf.reduce_mean(L_g * y_true_cls * training_mask) + classification_loss
