@@ -2,6 +2,7 @@
 # EAST: An Efficient and Accurate Scene Text Detector
 
 Only runs on Linux afaik
+
 Run install.sh script from shell, make sure that python3.7 is installed
 
 Then to run the model
