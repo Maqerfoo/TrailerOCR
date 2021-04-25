@@ -15,7 +15,18 @@ else
    pip install cloudpickle
    pip install wheel
    pip install pycocotools
+   pip install gdown
    exit
-fi;
+fi
 pip install fvcore-master.zip
 python setup.py build develop
+cd out_dir_r101
+if [ -d "/out_dir_r101/icdar2013_model" ] 
+then
+    cd out_dir_r101/icdar2013_model 
+else
+    cd out_dir_r101
+    mkdir icdar2013_model
+    cd icdar2013_model
+fi;
+gdown https://drive.google.com/uc?id=1VF88cnYCY28JBk2EHUMF9dKHCU_3SWUi
