@@ -1,3 +1,4 @@
+sudo apt-get install libgeos-dev
 pip install -r requirements.txt
 pip install gdown
 mkdir tmp
