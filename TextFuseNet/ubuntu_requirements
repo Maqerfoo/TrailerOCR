@@ -1,0 +1,34 @@
+sudo apt install build-essential
+sudo apt install -y g++-8 gcc-8
+sudo apt install python3-dev
+sudo apt install python-dev
+
+
+sudo apt install nvidia-cuda-toolkit
+
+
+
+Use update-alternatives to create list of multiple g++ and gcc alternatives. Run it for all installed g++ and gcc compilers
+
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 7
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 7
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 8
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
+
+
+sudo update-alternatives --config gcc
+sudo update-alternatives --config g++
+
+  Selection    Path            Priority   Status
+------------------------------------------------------------
+  0            /usr/bin/gcc-9   9         auto mode
+  1            /usr/bin/gcc-7   7         manual mode
+* 2            /usr/bin/gcc-8   8         manual mode
+  3            /usr/bin/gcc-9   9         manual mode
+Press  to keep the current choice[*], or type selection number: 
+
+Choose gcc-8 and g++-8
+
+
