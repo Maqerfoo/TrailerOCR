@@ -13,12 +13,12 @@ pip install gdown
 pip install fvcore-master.zip
 python setup.py build develop
 cd out_dir_r101
-if [ -d "/out_dir_r101/icdar2013_model" ] 
+if [ -d "/out_dir_r101/icdar2015_model" ] 
 then
-    cd out_dir_r101/icdar2013_model 
+    cd out_dir_r101/icdar2015_model 
 else
     cd out_dir_r101
-    mkdir icdar2013_model
-    cd icdar2013_model
+    mkdir icdar2015_model
+    cd icdar2015_model
 fi;
-gdown https://drive.google.com/uc?id=1VF88cnYCY28JBk2EHUMF9dKHCU_3SWUi
+gdown https://drive.google.com/uc?id=18Ll-3bAmi4CR2eGTuM-j6fkMrSAaBV4Z
