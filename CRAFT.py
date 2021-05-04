@@ -15,7 +15,7 @@ for subdir, dirs, files in os.walk(rootdir):
         f = open(os.path.join(output_path, "gt_" + os.path.splitext(file)[0] + ".txt"), "w")
         for text in result[0]:
             cv2.rectangle(img , (text[0],text[3]) , (text[1],text[2]) , (0,255,0) , 3)
-            free_form = [text[0],text[3],text[1],text[3],text[0],text[2],text[0],text[2]]
+            free_form = [text[0],text[3],text[1],text[3],text[0],text[3],text[0],text[2]]
             f.write("\n")
             f.write(",".join(map(str, free_form)))
         print(os.path.join(output_path, "result_" + file))
