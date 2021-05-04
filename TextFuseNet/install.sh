@@ -21,4 +21,4 @@ else
     mkdir icdar2015_model
     cd icdar2015_model
 fi;
-gdown https://drive.google.com/uc?id=18Ll-3bAmi4CR2eGTuM-j6fkMrSAaBV4Z
+gdown https://drive.google.com/uc?id=1OWQUxaHpEoWoC6TzArgsz3aVvkJhJhej
