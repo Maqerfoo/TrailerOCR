@@ -11,7 +11,7 @@
 from collections import namedtuple
 import rrc_evaluation_funcs_1_1 as rrc_evaluation_funcs
 import importlib
-import format_zip
+from format_zip import *
 
 def evaluation_imports():
     """
@@ -317,7 +317,9 @@ def evaluate_method(gtFilePath, submFilePath, evaluationParams):
     
     return resDict;
 
+
 if __name__=='__main__':
     filename_reg = format_zip()
     rrc_evaluation_funcs.main_evaluation(None,default_evaluation_params,validate_data,evaluate_method)
-    return_zip(file_reg)
+    return_zip(filename_reg)
+    format_results(filename_reg)
