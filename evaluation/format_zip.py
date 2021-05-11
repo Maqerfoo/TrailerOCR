@@ -52,7 +52,3 @@ def format_results(filename_reg):
     for k,v in filename_reg[0].items():
         index = os.path.splitext(k)[0].split("_")[-1]
         os.rename("results/" + index + ".json", "results/" + v + ".json")
-
-if __name__=='__main__':
-    file_reg = format_zip()
-    return_zip(file_reg)
