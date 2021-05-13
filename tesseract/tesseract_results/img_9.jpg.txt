@@ -1,6 +1,0 @@
-274,23,394,92   Confidence:95 time:0:00:01.023359
-23,422,227,462 intelligent Confidence:95 time:0:00:01.023734
-324,469,446,500 group Confidence:96 time:0:00:01.024204
-27,513,245,555 University Confidence:95 time:0:00:01.024540
-264,516,307,547 of Confidence:96 time:0:00:01.025210
-321,519,443,549 Essex Confidence:96 time:0:00:01.025453
