@@ -1,1 +1,0 @@
-/home/mhliao/retrieval/text_rec/src/cpp/CMakeFiles/crnn.dir
