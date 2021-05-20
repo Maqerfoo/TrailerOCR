@@ -3,6 +3,12 @@ import os
 import cv2
 import numpy as np
 import time
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("input_folder")
+args = parser.parse_args()
+
 
 reader = easyocr.Reader(['en'], recognizer = False, gpu = False)
 try: 
@@ -11,7 +17,7 @@ except OSError as error:
     pass
 output_path = os.path.join(os.getcwd(), "CRAFT_output")
 
-rootdir = os.path.join(os.getcwd(), "IVtext")
+rootdir = os.path.join(os.getcwd(), args.input_folder)
 
 for subdir, dirs, files in os.walk(rootdir):
     files.sort()
