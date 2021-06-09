@@ -1,12 +1,12 @@
 # TrailerOCR
 
-This repo contains a dataset of synthetic text with isolated factors of variance of various levels
+This repo contains three branches
 
-Also the following models are forked, with install shell-scripts and instructions for Ubuntu installations, where necessary.
+The main branch includes:
+* IVtext - a dataset of the same baseline-image of synthetic text, warped in different levels over multiple categories.
+* A modified evaluation script that accepts matching folders of all filenames for the ground truth and submission.
+* A jupyter notebook that can host an interactive heatmap of all parsed results.
 
-```
-<https://github.com/kurapan/EAST>
-<https://github.com/ming71/DAL>
-<https://github.com/ying09/TextFuseNet>
-```
+
+The Ubuntu20.04 branch includes all source-code compiled on Ubuntu20.04 and Ubuntu16.04 includes all source code compiled on Ubuntu16.04
 
